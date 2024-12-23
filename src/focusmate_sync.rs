@@ -17,19 +17,10 @@ fn get_session_title(session: &Session) -> Result<String> {
         return Err(anyhow!("Could not get me profile."));
     };
 
-    let Some(session_title) = &me.session_title else {
-        return Err(anyhow!(
-            "Missing focusmate session title for session {}.",
-            session.start_time
-        ));
+    let session_title = match &me.session_title {
+        Some(session_title) => session_title,
+        None => "",
     };
-
-    if session_title.is_empty() {
-        return Err(anyhow!(
-            "Focusmate session title is empty for session {}.",
-            session.start_time
-        ));
-    }
 
     Ok(session_title.to_string())
 }

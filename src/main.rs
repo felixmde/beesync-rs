@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use aw_client_light::AwClient;
 use beeminder::BeeminderClient;
 use config::Config;
