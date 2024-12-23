@@ -1,0 +1,14 @@
+[package]
+name = "beesync-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "^1.0"
+aw-client-light = { path = "./aw-client-light" }
+beeminder-rs = { git = "https://github.com/felixmde/beeminder-rs", branch = "main" }
+focusmate-rs = { git = "https://github.com/felixmde/focusmate-rs", branch = "main" }
+serde = { version = "^1.0", features = ["derive"] }
+time = { version = "^0.3", features = ["serde", "parsing", "formatting", "macros", "local-offset"] }
+tokio = { version = "^1.42", features = ["full"] }
+toml = "^0.8"
