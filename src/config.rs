@@ -5,13 +5,13 @@ use serde::Deserialize;
 pub struct Config {
     pub beeminder_api_key_env: String,
     pub focusmate_api_key_env: String,
+    pub beeminder_username: String,
     pub clean_tube_sync: CleanTubeSync,
     pub focusmate_sync: FocusmateSync,
 }
 
 #[derive(Deserialize)]
 pub struct CleanTubeSync {
-    pub beeminder_username: String,
     pub activity_watch_base_url: String,
     pub window_bucket: String,
     pub goal_name: String,
@@ -22,7 +22,6 @@ pub struct CleanTubeSync {
 
 #[derive(Deserialize)]
 pub struct FocusmateSync {
-    pub beeminder_username: String,
     pub goal_name: String,
     pub auto_tags: Vec<String>,
 }

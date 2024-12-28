@@ -72,10 +72,9 @@ pub async fn focusmate_sync(
     beeminder: &BeeminderClient,
 ) -> Result<()> {
     println!("🤝 focusmate-sync");
-    let user = &config.beeminder_username;
     let goal = &config.goal_name;
     let most_recent_focusmate_dp = beeminder
-        .get_datapoints(user, goal, Some("timestamp"), Some(1))
+        .get_datapoints(goal, Some("timestamp"), Some(1))
         .await?;
     let start = match most_recent_focusmate_dp.first() {
         Some(dp) if dp.value != 0.0 => dp.timestamp,
@@ -86,12 +85,7 @@ pub async fn focusmate_sync(
 
     // Get enough datapoints to check for duplicates
     let existing_dps = beeminder
-        .get_datapoints(
-            user,
-            goal,
-            Some("timestamp"),
-            Some(fm_sessions.len() as u64),
-        )
+        .get_datapoints(goal, Some("timestamp"), Some(fm_sessions.len() as u64))
         .await?;
 
     let existing_timestamps: HashSet<_> = existing_dps.iter().map(|dp| dp.timestamp).collect();
@@ -104,14 +98,14 @@ pub async fn focusmate_sync(
 
     for session in new_sessions {
         let dp = session_to_datapoint(focusmate, &session).await?;
-        beeminder.create_datapoint(user, goal, &dp).await?;
+        beeminder.create_datapoint(goal, &dp).await?;
         assert!(dp.comment.is_some());
         if let Some(comment) = dp.comment.as_ref() {
             println!("  🆕 Created Focusmate datapoint: {comment}");
 
             let matching_tags = find_matching_tags(&config.auto_tags, comment);
             for tag in matching_tags {
-                beeminder.create_datapoint(user, &tag, &dp).await?;
+                beeminder.create_datapoint(&tag, &dp).await?;
                 println!("    📌 Created additional datapoint for goal: {tag}");
             }
         }

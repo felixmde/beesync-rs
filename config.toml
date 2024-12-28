@@ -1,8 +1,8 @@
 beeminder_api_key_env = "BEEMINDER_API_KEY"
 focusmate_api_key_env = "FOCUSMATE_API_KEY"
+beeminder_username = "me"
 
 [clean_tube_sync]
-beeminder_username = "felixm"
 activity_watch_base_url = "http://localhost:5600"
 window_bucket = "aw-watcher-window_maya"
 goal_name = "clean-tube"
@@ -11,6 +11,5 @@ min_video_duration_seconds = 30.0
 max_datapoints = 50
 
 [focusmate_sync]
-beeminder_username = "felixm"
 goal_name = "focusmate-test"
 auto_tags = []

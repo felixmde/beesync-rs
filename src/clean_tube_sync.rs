@@ -33,12 +33,7 @@ async fn get_logged_titles(
     config: &CleanTubeSync,
 ) -> Result<HashSet<String>> {
     let datapoints = beeminder
-        .get_datapoints(
-            &config.beeminder_username,
-            &config.goal_name,
-            None,
-            Some(config.max_datapoints),
-        )
+        .get_datapoints(&config.goal_name, None, Some(config.max_datapoints))
         .await?;
 
     Ok(datapoints
@@ -68,9 +63,7 @@ pub async fn clean_tube_sync(
                 daystamp: None,
                 requestid: None,
             };
-            beeminder
-                .create_datapoint(&config.beeminder_username, &config.goal_name, &dp)
-                .await?;
+            beeminder.create_datapoint(&config.goal_name, &dp).await?;
         }
     }
     Ok(())

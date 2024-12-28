@@ -19,7 +19,8 @@ async fn main() -> Result<()> {
     let config = Config::load()?;
     let aw_client = AwClient::new(None);
     let beeminder_key = get_key(&config.beeminder_api_key_env)?;
-    let beeminder_client = BeeminderClient::new(beeminder_key);
+    let beeminder_client =
+        BeeminderClient::new(beeminder_key).with_username(config.beeminder_username);
     let focusmate_key = get_key(&config.focusmate_api_key_env)?;
     let fm_client = FocusmateClient::new(focusmate_key);
 
