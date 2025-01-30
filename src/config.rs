@@ -32,7 +32,7 @@ impl Config {
             .nth(1)
             .unwrap_or_else(|| "config.toml".to_string());
         let config_str = std::fs::read_to_string(config_path)?;
-        let config: Config = toml::from_str(&config_str)?;
+        let config: Self = toml::from_str(&config_str)?;
         Ok(config)
     }
 }

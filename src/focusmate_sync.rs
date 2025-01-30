@@ -17,11 +17,7 @@ fn get_session_title(session: &Session) -> Result<String> {
         return Err(anyhow!("Could not get me profile."));
     };
 
-    let session_title = match &me.session_title {
-        Some(session_title) => session_title,
-        None => "",
-    };
-
+    let session_title = me.session_title.as_ref().map_or("", |t| t);
     Ok(session_title.to_string())
 }
 

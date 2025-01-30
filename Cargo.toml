@@ -8,7 +8,7 @@ anyhow = "^1.0"
 aw-client-light = { path = "./aw-client-light" }
 beeminder-rs = { git = "https://github.com/felixmde/beeminder-rs", branch = "main" }
 focusmate-rs = { git = "https://github.com/felixmde/focusmate-rs", branch = "main" }
-serde = { version = "^1.0", features = ["derive"] }
-time = { version = "^0.3", features = ["serde", "parsing", "formatting", "macros", "local-offset"] }
-tokio = { version = "^1.42", features = ["full"] }
+serde = { version = "^1.0", features = [] }
+time = { version = "^0.3", features = [] }
+tokio = { version = "^1.42", features = [] }
 toml = "^0.8"
