@@ -48,5 +48,5 @@ beeminder_key = { env = "BEEMINDER_API_KEY" }
 # If there aren't any social media titles, just reply 'no' without quotes.
 # 
 # Titles:
-# {titles}
+# {{titles}}
 # """

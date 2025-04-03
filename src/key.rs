@@ -12,10 +12,10 @@ pub enum Key {
 impl Key {
     pub fn get_value(&self) -> Result<String> {
         match self {
-            Key::Env { env } => {
+            Self::Env { env } => {
                 std::env::var(env).map_err(|_| anyhow!("Environment variable '{}' not found", env))
             }
-            Key::Cmd { cmd } => {
+            Self::Cmd { cmd } => {
                 let output = Command::new("sh")
                     .arg("-c")
                     .arg(cmd)

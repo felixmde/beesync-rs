@@ -22,7 +22,7 @@ pub struct CleanViewConfig {
 
 fn get_prompt(template: &str, titles: &[String]) -> String {
     let titles_str = titles.join("\n");
-    template.replace("{titles}", &titles_str)
+    template.replace("{{titles}}", &titles_str)
 }
 
 pub async fn clean_view_sync(config: &CleanViewConfig, beeminder: &BeeminderClient) -> Result<()> {
@@ -63,7 +63,7 @@ pub async fn clean_view_sync(config: &CleanViewConfig, beeminder: &BeeminderClie
             if titles.is_empty() {
                 ("🫙 No titles.".to_string(), 1.0)
             } else {
-                let prompt = get_prompt(&config.prompt_template, &titles);
+                let prompt = get_prompt(&config.prompt_template, titles);
                 let result = gpt.chat(&prompt).await?;
 
                 if result.trim() == "no" {

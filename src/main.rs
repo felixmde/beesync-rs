@@ -14,7 +14,7 @@ where
     Fut: std::future::Future<Output = Result<()>>,
 {
     match f().await {
-        Ok(_) => println!("  ✅ completed successfully"),
+        Ok(()) => println!("  ✅ completed successfully"),
         Err(e) => eprintln!("  ❌ failed: {e}"),
     }
 }
