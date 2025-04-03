@@ -10,6 +10,16 @@ A Rust application to sync data with Beeminder.
 
 ## Supported Sync Modules
 
+### Focusmate Sync
+
+Syncs your completed Focusmate sessions to Beeminder:
+
+- Fetches your completed Focusmate sessions
+- Creates a datapoint for each session with details like time, partner, and duration
+- Supports logging to additional goals based on tags in session comment
+- On first run, syncs all historical sessions if no existing datapoints are found
+
+
 ### Clean Tube Sync
 
 Tracks YouTube videos you've watched using ActivityWatch data:
@@ -19,14 +29,14 @@ Tracks YouTube videos you've watched using ActivityWatch data:
 - Creates a Beeminder datapoint for each unique video
 - Helps track and be mindful of your YouTube consumption
 
-### Focusmate Sync
+### Clean View Sync (hack - don't use)
 
-Syncs your completed Focusmate sessions to Beeminder:
+Monitors browser window usage and checks for specific activity:
 
-- Fetches your completed Focusmate sessions
-- Creates a datapoint for each session with details like time, partner, and duration
-- Supports logging to additional goals based on tags in session comment
-- On first run, syncs all historical sessions if no existing datapoints are found
+- Retrieves browser window events from ActivityWatch
+- Uses OpenAI's GPT to analyze window titles for specific usage
+- Creates datapoints on your Beeminder goal (clean=1, dirty=0)
+- Uses a customizable prompt template for the AI analysis
 
 ### Fatebook Sync
 

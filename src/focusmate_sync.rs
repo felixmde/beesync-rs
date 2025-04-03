@@ -70,10 +70,7 @@ async fn session_to_datapoint(
     Ok(dp)
 }
 
-pub async fn focusmate_sync(
-    config: &FocusmateConfig,
-    beeminder: &BeeminderClient,
-) -> Result<()> {
+pub async fn focusmate_sync(config: &FocusmateConfig, beeminder: &BeeminderClient) -> Result<()> {
     println!("🤝 focusmate-sync");
     let key = config.key.get_value()?;
     let focusmate = FocusmateClient::new(key);

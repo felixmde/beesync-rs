@@ -20,3 +20,33 @@ beeminder_key = { env = "BEEMINDER_API_KEY" }
 # [fatebook]
 # key = { env = "FATEBOOK_API_KEY" }
 # # Alternative: key = { cmd = "keyring get fatebook-api-key me" }
+
+# [clean_view]
+# activity_watch_base_url = "http://localhost:5600"
+# window_bucket = "aw-watcher-window_laptop"
+# goal_name = "social-media"
+# lookback_days = 3
+# openai_key = { env = "OPENAI_API_KEY" }
+# # Alternative: openai_key = { cmd = "cat ~/.openai_key" }
+# openai_model = "gpt-4o"
+# min_window_duration_seconds = 10.0
+# prompt_template = """
+# I have a goal to reduce my social media usage. Please analyze the following window titles 
+# and determine if any indicate social media usage (Facebook, Twitter/X, Instagram, TikTok, 
+# Reddit, LinkedIn, etc.).
+# 
+# Either reply:
+# 
+# no
+# 
+# Or:
+# 
+# yes
+# <list the social media window titles here, one per line>
+# 
+# Make sure you list only the lines that definitely indicate social media usage.
+# If there aren't any social media titles, just reply 'no' without quotes.
+# 
+# Titles:
+# {titles}
+# """

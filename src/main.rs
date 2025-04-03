@@ -2,8 +2,9 @@ use anyhow::Result;
 use beeminder::BeeminderClient;
 use config::Config;
 mod clean_tube_sync;
-mod fatebook_sync;
+mod clean_view_sync;
 mod config;
+mod fatebook_sync;
 mod focusmate_sync;
 mod key;
 
@@ -34,6 +35,10 @@ async fn main() -> Result<()> {
 
     if let Some(clean_tube_config) = config.clean_tube {
         run_sync(|| clean_tube_sync::clean_tube_sync(&clean_tube_config, &bee_client)).await;
+    }
+
+    if let Some(clean_view_config) = config.clean_view {
+        run_sync(|| clean_view_sync::clean_view_sync(&clean_view_config, &bee_client)).await;
     }
 
     Ok(())

@@ -1,8 +1,8 @@
+use crate::key::Key;
 use anyhow::Result;
 use beeminder::{types::CreateDatapoint, BeeminderClient};
 use fatebook::FatebookClient;
 use serde::Deserialize;
-use crate::key::Key;
 use std::collections::HashSet;
 
 #[derive(Deserialize)]
