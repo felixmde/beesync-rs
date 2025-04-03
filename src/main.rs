@@ -1,26 +1,40 @@
-use anyhow::{anyhow, Result};
-use aw_client_light::AwClient;
+use anyhow::Result;
 use beeminder::BeeminderClient;
 use config::Config;
-use focusmate::FocusmateClient;
 mod clean_tube_sync;
+mod fatebook_sync;
 mod config;
 mod focusmate_sync;
+mod key;
 
-fn get_key(env_var_name: &str) -> Result<String> {
-    std::env::var(env_var_name).map_or_else(|_| Err(anyhow!("{env_var_name} not found")), Ok)
+async fn run_sync<F, Fut>(f: F)
+where
+    F: FnOnce() -> Fut,
+    Fut: std::future::Future<Output = Result<()>>,
+{
+    match f().await {
+        Ok(_) => println!("  ✅ completed successfully"),
+        Err(e) => eprintln!("  ❌ failed: {e}"),
+    }
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Config::load()?;
-    let aw_client = AwClient::new(None);
-    let bee_key = get_key(&config.beeminder_api_key_env)?;
+    let bee_key = config.beeminder_key.get_value()?;
     let bee_client = BeeminderClient::new(bee_key).with_username(config.beeminder_username);
-    let fm_key = get_key(&config.focusmate_api_key_env)?;
-    let fm_client = FocusmateClient::new(fm_key);
 
-    clean_tube_sync::clean_tube_sync(&config.clean_tube_sync, &bee_client, &aw_client).await?;
-    focusmate_sync::focusmate_sync(&config.focusmate_sync, &fm_client, &bee_client).await?;
+    if let Some(focusmate_config) = config.focusmate {
+        run_sync(|| focusmate_sync::focusmate_sync(&focusmate_config, &bee_client)).await;
+    }
+
+    if let Some(fatebook_config) = config.fatebook {
+        run_sync(|| fatebook_sync::fatebook_sync(&fatebook_config, &bee_client)).await;
+    }
+
+    if let Some(clean_tube_config) = config.clean_tube {
+        run_sync(|| clean_tube_sync::clean_tube_sync(&clean_tube_config, &bee_client)).await;
+    }
+
     Ok(())
 }

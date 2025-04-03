@@ -1,29 +1,17 @@
+use crate::clean_tube_sync::CleanTubeConfig;
+use crate::focusmate_sync::FocusmateConfig;
+use crate::fatebook_sync::FatebookConfig;
+use crate::key::Key;
 use anyhow::Result;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Config {
-    pub beeminder_api_key_env: String,
-    pub focusmate_api_key_env: String,
+    pub beeminder_key: Key,
     pub beeminder_username: String,
-    pub clean_tube_sync: CleanTubeSync,
-    pub focusmate_sync: FocusmateSync,
-}
-
-#[derive(Deserialize)]
-pub struct CleanTubeSync {
-    pub activity_watch_base_url: String,
-    pub window_bucket: String,
-    pub goal_name: String,
-    pub lookback_days: i64,
-    pub min_video_duration_seconds: f64,
-    pub max_datapoints: u64,
-}
-
-#[derive(Deserialize)]
-pub struct FocusmateSync {
-    pub goal_name: String,
-    pub auto_tags: Vec<String>,
+    pub clean_tube: Option<CleanTubeConfig>,
+    pub focusmate: Option<FocusmateConfig>,
+    pub fatebook: Option<FatebookConfig>
 }
 
 impl Config {

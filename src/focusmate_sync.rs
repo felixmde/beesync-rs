@@ -1,9 +1,17 @@
-use crate::config::FocusmateSync;
+use crate::key::Key;
 use anyhow::{anyhow, Result};
 use beeminder::{types::CreateDatapoint, BeeminderClient};
 use focusmate::{FocusmateClient, Session};
+use serde::Deserialize;
 use std::collections::HashSet;
 use time::{Duration, OffsetDateTime};
+
+#[derive(Deserialize)]
+pub struct FocusmateConfig {
+    pub key: Key,
+    pub goal_name: String,
+    pub auto_tags: Vec<String>,
+}
 
 fn find_matching_tags(tags: &[String], comment: &str) -> Vec<String> {
     tags.iter()
@@ -63,11 +71,13 @@ async fn session_to_datapoint(
 }
 
 pub async fn focusmate_sync(
-    config: &FocusmateSync,
-    focusmate: &FocusmateClient,
+    config: &FocusmateConfig,
     beeminder: &BeeminderClient,
 ) -> Result<()> {
     println!("🤝 focusmate-sync");
+    let key = config.key.get_value()?;
+    let focusmate = FocusmateClient::new(key);
+
     let goal = &config.goal_name;
     let most_recent_focusmate_dp = beeminder
         .get_datapoints(goal, Some("timestamp"), Some(1))
@@ -93,7 +103,7 @@ pub async fn focusmate_sync(
         .collect();
 
     for session in new_sessions {
-        let dp = session_to_datapoint(focusmate, &session).await?;
+        let dp = session_to_datapoint(&focusmate, &session).await?;
         beeminder.create_datapoint(goal, &dp).await?;
         assert!(dp.comment.is_some());
         if let Some(comment) = dp.comment.as_ref() {

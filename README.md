@@ -1,27 +1,52 @@
 # beesync-rs
 
-A Rust application to sync data with Beeminder using ActivityWatch and
-Focusmate.
+A Rust application to sync data with Beeminder.
 
-## Features
+## Getting Started
 
-- Fetch and log YouTube events from ActivityWatch.
-- Sync Focusmate sessions to Beeminder.
-- Automatic tagging for Focusmate sessions.
+1. Adjust your username and specify a way to access your API key in the config.
+2. Uncomment and adjust one or more of the synchronization use cases in `config.toml`. 
+3. Run `cargo run` (uses `config.toml`) or `cargo run -- your_config.toml`.
 
-## Usage
+## Supported Sync Modules
 
-1. Set environment variables `BEEMINDER_API_KEY` and `FOCUSMATE_API_KEY`.
-2. Configure `config.toml` with your Beeminder and ActivityWatch settings.
-3. Run the application:
+### Clean Tube Sync
 
-```bash
-cargo run -- config.toml
+Tracks YouTube videos you've watched using ActivityWatch data:
+
+- Retrieves window events from ActivityWatch
+- Identifies YouTube videos you've watched longer than a minimum duration
+- Creates a Beeminder datapoint for each unique video
+- Helps track and be mindful of your YouTube consumption
+
+### Focusmate Sync
+
+Syncs your completed Focusmate sessions to Beeminder:
+
+- Fetches your completed Focusmate sessions
+- Creates a datapoint for each session with details like time, partner, and duration
+- Supports logging to additional goals based on tags in session comment
+- On first run, syncs all historical sessions if no existing datapoints are found
+
+### Fatebook Sync
+
+Tracks your Fatebook questions in Beeminder:
+
+- Fetches questions from your Fatebook account
+- Creates a Beeminder datapoint for each new question
+- Uses the question title as the datapoint comment
+
+## API Key Configuration
+
+The `config.toml` supports two methods for specifying API keys:
+
+```toml
+# Environment variable
+service_key = { env = "SERVICE_API_KEY" }
+
+# Command output
+service_key = { cmd = "cat ~/.service_key" }
 ```
-
-**Note:** When performing a Focusmate sync for the first time, if the script
-does not detect an existing data point with a value of `1.0`, it will sync all
-your sessions from the beginning of time.
 
 ## License
 
