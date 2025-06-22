@@ -21,6 +21,18 @@ beeminder_key = { env = "BEEMINDER_API_KEY" }
 # key = { env = "FATEBOOK_API_KEY" }
 # # Alternative: key = { cmd = "keyring get fatebook-api-key me" }
 
+# [category]
+# uri = { env = "AMAZING_MARVIN_URI" }
+# username = { env = "AMAZING_MARVIN_USERNAME" }
+# password = { env = "AMAZING_MARVIN_PASSWORD" }
+# database_name = { env = "AMAZING_MARVIN_DATABASE" }
+# # Alternative: uri = { cmd = "keyring get amazing-marvin-uri me" }
+# # Alternative: username = { cmd = "keyring get amazing-marvin-username me" }
+# # Alternative: password = { cmd = "keyring get amazing-marvin-password me" }
+# # Alternative: database_name = { cmd = "keyring get amazing-marvin-database me" }
+# category = "Must Do"
+# goal_name = "tasks"
+
 # [clean_view]
 # activity_watch_base_url = "http://localhost:5600"
 # window_bucket = "aw-watcher-window_laptop"

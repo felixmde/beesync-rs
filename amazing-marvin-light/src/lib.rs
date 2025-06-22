@@ -15,10 +15,10 @@ pub enum Error {
 
 #[derive(Clone, Debug)]
 pub struct AmazingMarvinCredentials {
-    uri: String,
-    username: String,
-    password: String,
-    database_name: String,
+    pub uri: String,
+    pub username: String,
+    pub password: String,
+    pub database_name: String,
 }
 
 pub struct AmazingMarvinClient {

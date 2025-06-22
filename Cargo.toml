@@ -4,14 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "^1.0"
+amazing-marvin-light = { path = "./amazing-marvin-light" }
+anyhow = "1.0"
 aw-client-light = { path = "./aw-client-light" }
 fatebook-rs = { path = "./fatebook-rs" }
 gpt = { path = "./gpt" }
 beeminder-rs = { git = "https://github.com/felixmde/beeminder-rs", branch = "main" }
 focusmate-rs = { git = "https://github.com/felixmde/focusmate-rs", branch = "main" }
-serde = { version = "^1.0", features = [] }
-time = { version = "^0.3", features = ["local-offset"] }
-# time = { version = "^0.3", features = ["serde", "parsing", "formatting", "macros", "local-offset"] }
-tokio = { version = "^1.42", features = [] }
-toml = "^0.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+time = { version = "0.3", features = ["local-offset"] }
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros"] }
+toml = "0.8"

@@ -1,6 +1,7 @@
 use anyhow::Result;
 use beeminder::BeeminderClient;
 use config::Config;
+mod category_sync;
 mod clean_tube_sync;
 mod clean_view_sync;
 mod config;
@@ -31,6 +32,10 @@ async fn main() -> Result<()> {
 
     if let Some(fatebook_config) = config.fatebook {
         run_sync(|| fatebook_sync::fatebook_sync(&fatebook_config, &bee_client)).await;
+    }
+
+    if let Some(category_config) = config.category {
+        run_sync(|| category_sync::category_sync(&category_config, &bee_client)).await;
     }
 
     if let Some(clean_tube_config) = config.clean_tube {

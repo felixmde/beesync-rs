@@ -1,3 +1,4 @@
+use crate::category_sync::CategorySyncConfig;
 use crate::clean_tube_sync::CleanTubeConfig;
 use crate::clean_view_sync::CleanViewConfig;
 use crate::fatebook_sync::FatebookConfig;
@@ -10,6 +11,7 @@ use serde::Deserialize;
 pub struct Config {
     pub beeminder_key: Key,
     pub beeminder_username: String,
+    pub category: Option<CategorySyncConfig>,
     pub clean_tube: Option<CleanTubeConfig>,
     pub clean_view: Option<CleanViewConfig>,
     pub focusmate: Option<FocusmateConfig>,
