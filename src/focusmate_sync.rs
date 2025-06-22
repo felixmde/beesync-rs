@@ -97,6 +97,7 @@ pub async fn focusmate_sync(config: &FocusmateConfig, beeminder: &BeeminderClien
         .into_iter()
         .filter(focusmate::Session::completed)
         .filter(|session| !existing_timestamps.contains(&session.start_time))
+        .rev()
         .collect();
 
     for session in new_sessions {
