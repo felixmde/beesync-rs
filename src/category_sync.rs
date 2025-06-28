@@ -70,7 +70,7 @@ pub async fn category_sync(config: &CategorySyncConfig, beeminder: &BeeminderCli
         database_name,
     };
 
-    let marvin_client = AmazingMarvinClient::new(&credentials);
+    let marvin_client = AmazingMarvinClient::new(credentials);
     let goal = &config.goal_name;
 
     let done_tasks = marvin_client
