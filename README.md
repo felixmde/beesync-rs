@@ -104,6 +104,23 @@ min_window_duration_seconds = 10.0
 prompt_template = "..."
 ```
 
+### GitHub Sync
+
+Tracks Git commits to Beeminder:
+
+- Fetches commits from GitHub for a specified user
+- Creates a datapoint for each commit with repository and commit message
+- Uses commit SHA as unique identifier to prevent duplicates
+- Optional authentication with GitHub personal access token for higher rate limits
+
+**Configuration:**
+```toml
+[github]
+key = { env = "GITHUB_TOKEN" }  # Optional - for higher rate limits
+goal_name = "commits"
+username = "your-github-username"
+```
+
 ## API Key Configuration
 
 The `config.toml` supports two methods for specifying API keys:

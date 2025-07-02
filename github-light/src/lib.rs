@@ -21,6 +21,7 @@ pub struct Commit {
     pub sha: String,
     pub message: String,
     pub repository: String,
+    pub committer_date: OffsetDateTime,
 }
 
 #[derive(Debug, Deserialize)]
@@ -38,6 +39,12 @@ struct SearchCommit {
 #[derive(Debug, Deserialize)]
 struct CommitDetails {
     message: String,
+    committer: Committer,
+}
+
+#[derive(Debug, Deserialize)]
+struct Committer {
+    date: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -139,12 +146,21 @@ impl GitHubClient {
         let commits = search_response
             .items
             .into_iter()
-            .map(|item| Commit {
-                sha: item.sha,
-                message: item.commit.message,
-                repository: item.repository.full_name,
+            .map(|item| -> Result<Commit, Error> {
+                let committer_date = OffsetDateTime::parse(&item.commit.committer.date, &Rfc3339)
+                    .map_err(|_| Error::Api {
+                        status: 500,
+                        message: "Failed to parse commit date".to_string(),
+                    })?;
+                
+                Ok(Commit {
+                    sha: item.sha,
+                    message: item.commit.message,
+                    repository: item.repository.full_name,
+                    committer_date,
+                })
             })
-            .collect();
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(commits)
     }

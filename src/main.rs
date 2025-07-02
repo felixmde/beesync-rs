@@ -7,6 +7,7 @@ mod clean_view_sync;
 mod config;
 mod fatebook_sync;
 mod focusmate_sync;
+mod github_sync;
 mod key;
 
 async fn run_sync<F, Fut>(f: F)
@@ -44,6 +45,10 @@ async fn main() -> Result<()> {
 
     if let Some(clean_view_config) = config.clean_view {
         run_sync(|| clean_view_sync::clean_view_sync(&clean_view_config, &bee_client)).await;
+    }
+
+    if let Some(github_config) = config.github {
+        run_sync(|| github_sync::github_sync(&github_config, &bee_client)).await;
     }
 
     Ok(())

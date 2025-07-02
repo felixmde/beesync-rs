@@ -3,6 +3,7 @@ use crate::clean_tube_sync::CleanTubeConfig;
 use crate::clean_view_sync::CleanViewConfig;
 use crate::fatebook_sync::FatebookConfig;
 use crate::focusmate_sync::FocusmateConfig;
+use crate::github_sync::GitHubConfig;
 use crate::key::Key;
 use anyhow::Result;
 use serde::Deserialize;
@@ -16,6 +17,7 @@ pub struct Config {
     pub clean_view: Option<CleanViewConfig>,
     pub focusmate: Option<FocusmateConfig>,
     pub fatebook: Option<FatebookConfig>,
+    pub github: Option<GitHubConfig>,
 }
 
 impl Config {
