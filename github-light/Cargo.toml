@@ -1,0 +1,21 @@
+[package]
+name = "github-light"
+version = "0.1.0"
+edition = "2021"
+description = "Lightweight GitHub API client for fetching commit data"
+license = "MIT"
+repository = "https://github.com/felixmde/beesync-rs"
+readme = "README.md"
+keywords = ["github", "api", "git", "commits"]
+categories = ["api-bindings", "development-tools"]
+
+[lib]
+name = "github_light"
+path = "src/lib.rs"
+
+[dependencies]
+reqwest = { version = "^0.12", features = ["json"] }
+serde = { version = "^1.0", features = ["derive"] }
+thiserror = "^1.0"
+time = { version = "^0.3", features = ["serde", "parsing", "formatting", "macros"] }
+tokio = { version = "^1.0", features = ["rt-multi-thread", "macros"] }
