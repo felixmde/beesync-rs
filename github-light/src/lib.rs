@@ -25,31 +25,25 @@ pub struct Commit {
 }
 
 #[derive(Debug, Deserialize)]
-struct SearchResponse {
-    items: Vec<SearchCommit>,
-}
-
-#[derive(Debug, Deserialize)]
-struct SearchCommit {
-    sha: String,
-    commit: CommitDetails,
-    repository: Repository,
-}
-
-#[derive(Debug, Deserialize)]
-struct CommitDetails {
-    message: String,
-    committer: Committer,
-}
-
-#[derive(Debug, Deserialize)]
-struct Committer {
-    date: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct Repository {
+struct UserRepository {
     full_name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct RepoCommit {
+    sha: String,
+    commit: RepoCommitDetails,
+}
+
+#[derive(Debug, Deserialize)]
+struct RepoCommitDetails {
+    message: String,
+    committer: RepoCommitter,
+}
+
+#[derive(Debug, Deserialize)]
+struct RepoCommitter {
+    date: String,
 }
 
 /// A lightweight GitHub API client for fetching commit data.
@@ -70,60 +64,16 @@ impl GitHubClient {
         }
     }
 
-    /// Fetches all commits by a user since the specified date.
+    /// Fetches all repository names for a user.
     ///
     /// # Errors
     ///
-    /// Returns an error if the HTTP request fails, the date format is invalid,
-    /// or the GitHub API returns an error response.
-    pub async fn get_commits(
-        &self,
-        username: &str,
-        since: &OffsetDateTime,
-    ) -> Result<Vec<Commit>, Error> {
-        const PER_PAGE: usize = 100;
-        let mut all_commits = Vec::new();
-        let mut page = 1;
-
-        loop {
-            let commits = self
-                .get_commits_page(username, since, page, PER_PAGE)
-                .await?;
-
-            let is_last_page = commits.len() < PER_PAGE;
-            all_commits.extend(commits);
-
-            if is_last_page {
-                break;
-            }
-
-            page += 1;
-        }
-
-        Ok(all_commits)
-    }
-
-    async fn get_commits_page(
-        &self,
-        username: &str,
-        since: &OffsetDateTime,
-        page: u32,
-        per_page: usize,
-    ) -> Result<Vec<Commit>, Error> {
-        let since_str = since.format(&Rfc3339)?;
-        let query = format!("author:{username} committer-date:>{since_str}");
-
+    /// Returns an error if the HTTP request fails or the GitHub API returns an error response.
+    pub async fn get_user_repositories(&self, username: &str) -> Result<Vec<String>, Error> {
         let mut request = self
             .client
-            .get("https://api.github.com/search/commits")
-            .query(&[
-                ("q", query.as_str()),
-                ("sort", "committer-date"),
-                ("order", "desc"),
-                ("page", &page.to_string()),
-                ("per_page", &per_page.to_string()),
-            ])
-            .header("Accept", "application/vnd.github.cloak-preview")
+            .get(format!("https://api.github.com/users/{username}/repos"))
+            .query(&[("per_page", "100")])
             .header("User-Agent", "github-light/0.1.0");
 
         if let Some(token) = &self.token {
@@ -141,22 +91,84 @@ impl GitHubClient {
             return Err(Error::Api { status, message });
         }
 
-        let search_response: SearchResponse = response.json().await?;
+        let repositories: Vec<UserRepository> = response.json().await?;
+        Ok(repositories
+            .into_iter()
+            .map(|repo| repo.full_name)
+            .collect())
+    }
 
-        let commits = search_response
-            .items
+    /// Fetches all commits by a user since the specified date.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails, the date format is invalid,
+    /// or the GitHub API returns an error response.
+    pub async fn get_commits(
+        &self,
+        username: &str,
+        since: &OffsetDateTime,
+    ) -> Result<Vec<Commit>, Error> {
+        let repositories = self.get_user_repositories(username).await?;
+        let mut all_commits = Vec::new();
+
+        for repo in repositories {
+            let commits = self.get_repository_commits(&repo, username, since).await?;
+            all_commits.extend(commits);
+        }
+
+        Ok(all_commits)
+    }
+
+    /// Fetches commits for a specific repository since the specified date.
+    async fn get_repository_commits(
+        &self,
+        repo: &str,
+        username: &str,
+        since: &OffsetDateTime,
+    ) -> Result<Vec<Commit>, Error> {
+        let since_str = since.format(&Rfc3339)?;
+
+        let mut request = self
+            .client
+            .get(format!("https://api.github.com/repos/{repo}/commits"))
+            .query(&[
+                ("since", since_str.as_str()),
+                ("author", username),
+                ("per_page", "100"),
+            ])
+            .header("User-Agent", "github-light/0.1.0");
+
+        if let Some(token) = &self.token {
+            request = request.header("Authorization", format!("token {token}"));
+        }
+
+        let response = request.send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status().as_u16();
+            let message = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_owned());
+            return Err(Error::Api { status, message });
+        }
+
+        let repo_commits: Vec<RepoCommit> = response.json().await?;
+
+        let commits = repo_commits
             .into_iter()
             .map(|item| -> Result<Commit, Error> {
                 let committer_date = OffsetDateTime::parse(&item.commit.committer.date, &Rfc3339)
                     .map_err(|_| Error::Api {
-                        status: 500,
-                        message: "Failed to parse commit date".to_string(),
-                    })?;
-                
+                    status: 500,
+                    message: "Failed to parse commit date".to_string(),
+                })?;
+
                 Ok(Commit {
                     sha: item.sha,
                     message: item.commit.message,
-                    repository: item.repository.full_name,
+                    repository: repo.to_string(),
                     committer_date,
                 })
             })
@@ -170,6 +182,30 @@ impl GitHubClient {
 mod tests {
     use super::*;
     use time::macros::datetime;
+
+    #[tokio::test]
+    async fn test_github_user_repositories() {
+        let client = GitHubClient::new(None);
+
+        let result = client.get_user_repositories("felixmde").await;
+
+        match result {
+            Ok(repositories) => {
+                println!("Found {} repositories", repositories.len());
+                for (i, repo) in repositories.iter().enumerate().take(10) {
+                    println!("{}. {}", i + 1, repo);
+                }
+                assert!(
+                    !repositories.is_empty(),
+                    "Should find at least one repository"
+                );
+            }
+            Err(e) => {
+                eprintln!("Error fetching repositories: {e}");
+                panic!("Test failed with error: {e}");
+            }
+        }
+    }
 
     #[tokio::test]
     async fn test_github_commits() {

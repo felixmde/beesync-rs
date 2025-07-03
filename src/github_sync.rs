@@ -4,7 +4,7 @@ use beeminder::{types::CreateDatapoint, BeeminderClient};
 use github_light::{Commit, GitHubClient};
 use serde::Deserialize;
 use std::collections::HashSet;
-use time::OffsetDateTime;
+use time::{Duration, OffsetDateTime};
 
 #[derive(Deserialize)]
 pub struct GitHubConfig {
@@ -48,7 +48,7 @@ pub async fn github_sync(config: &GitHubConfig, beeminder: &BeeminderClient) -> 
         .await?;
 
     let start = match most_recent_github_dp.first() {
-        Some(dp) if dp.value != 0.0 => dp.timestamp,
+        Some(dp) if dp.value != 0.0 => dp.timestamp - Duration::days(2),
         _ => OffsetDateTime::UNIX_EPOCH,
     };
 
