@@ -33,7 +33,7 @@ pub async fn clean_view_sync(config: &CleanViewConfig, beeminder: &BeeminderClie
 
     let offset = UtcOffset::current_local_offset()?;
     let now = OffsetDateTime::now_utc().to_offset(offset);
-    let end_of_day_today = now.replace_time(Time::MIDNIGHT);
+    let end_of_day_today = now.replace_time(Time::MIDNIGHT) + Duration::days(1);
 
     for day_offset in (0..config.lookback_days).rev() {
         let end = end_of_day_today - Duration::days(day_offset);
@@ -50,13 +50,14 @@ pub async fn clean_view_sync(config: &CleanViewConfig, beeminder: &BeeminderClie
             .map(|event| event.data.title)
             .collect();
 
-        let daystamp = format!("{:04}{:02}{:02}", end.year(), end.month() as u8, end.day());
+        let daystamp = format!("{:04}{:02}{:02}", start.year(), start.month() as u8, start.day());
         data_by_day.push((daystamp, entries.into_iter().collect()));
     }
 
     let existing_datapoints = beeminder
         .get_datapoints(&config.goal_name, None, Some(50))
         .await?;
+
 
     for (daystamp, titles) in &data_by_day {
         let (comment, value) = {
