@@ -77,7 +77,7 @@ pub async fn focusmate_sync(config: &FocusmateConfig, beeminder: &BeeminderClien
 
     let goal = &config.goal_name;
     let most_recent_focusmate_dp = beeminder
-        .get_datapoints(goal, Some("timestamp"), Some(1))
+        .get_datapoints(goal, Some("timestamp"), Some(1), None, None)
         .await?;
     let start = match most_recent_focusmate_dp.first() {
         Some(dp) if dp.value != 0.0 => dp.timestamp,
@@ -88,7 +88,7 @@ pub async fn focusmate_sync(config: &FocusmateConfig, beeminder: &BeeminderClien
 
     // Get enough datapoints to check for duplicates
     let existing_dps = beeminder
-        .get_datapoints(goal, Some("timestamp"), Some(fm_sessions.len() as u64))
+        .get_datapoints(goal, Some("timestamp"), Some(fm_sessions.len() as u64), None, None)
         .await?;
 
     let existing_timestamps: HashSet<_> = existing_dps.iter().map(|dp| dp.timestamp).collect();

@@ -44,7 +44,7 @@ pub async fn github_sync(config: &GitHubConfig, beeminder: &BeeminderClient) -> 
 
     let goal = &config.goal_name;
     let most_recent_github_dp = beeminder
-        .get_datapoints(goal, Some("timestamp"), Some(1))
+        .get_datapoints(goal, Some("timestamp"), Some(1), None, None)
         .await?;
 
     let start = match most_recent_github_dp.first() {
@@ -55,7 +55,7 @@ pub async fn github_sync(config: &GitHubConfig, beeminder: &BeeminderClient) -> 
     let commits = github.get_commits(&config.username, &start).await?;
 
     let existing_dps = beeminder
-        .get_datapoints(goal, Some("timestamp"), Some(commits.len() as u64))
+        .get_datapoints(goal, Some("timestamp"), Some(commits.len() as u64), None, None)
         .await?;
 
     let existing_shas: HashSet<_> = existing_dps

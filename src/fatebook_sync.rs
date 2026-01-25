@@ -36,7 +36,7 @@ pub async fn fatebook_sync(config: &FatebookConfig, beeminder: &BeeminderClient)
 
     let questions = fatebook.get_questions(None).await?;
     let existing_dps = beeminder
-        .get_datapoints(goal, Some("timestamp"), Some(questions.len() as u64))
+        .get_datapoints(goal, Some("timestamp"), Some(questions.len() as u64), None, None)
         .await?;
 
     let existing_ids: HashSet<_> = existing_dps

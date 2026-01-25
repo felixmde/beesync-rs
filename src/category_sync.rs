@@ -78,7 +78,7 @@ pub async fn category_sync(config: &CategorySyncConfig, beeminder: &BeeminderCli
         .await?;
 
     let existing_dps = beeminder
-        .get_datapoints(goal, Some("timestamp"), None)
+        .get_datapoints(goal, Some("timestamp"), None, None, None)
         .await?;
 
     let existing_ids: HashSet<_> = existing_dps

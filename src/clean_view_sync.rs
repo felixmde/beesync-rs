@@ -55,7 +55,7 @@ pub async fn clean_view_sync(config: &CleanViewConfig, beeminder: &BeeminderClie
     }
 
     let existing_datapoints = beeminder
-        .get_datapoints(&config.goal_name, None, Some(50))
+        .get_datapoints(&config.goal_name, None, Some(50), None, None)
         .await?;
 
 
