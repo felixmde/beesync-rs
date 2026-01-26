@@ -7,7 +7,7 @@ edition = "2021"
 amazing-marvin-light = { path = "./amazing-marvin-light" }
 anyhow = "1.0"
 aw-client-light = { path = "./aw-client-light" }
-fatebook-rs = { path = "./fatebook-rs" }
+fatebook-rs = { git = "https://github.com/felixmde/fatebook-rs", branch = "main" }
 gpt = { path = "./gpt" }
 github-light = { path = "./github-light" }
 beeminder-rs = { git = "https://github.com/felixmde/beeminder-rs", branch = "main" }
