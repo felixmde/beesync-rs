@@ -1,6 +1,7 @@
 use crate::category_sync::CategorySyncConfig;
 use crate::clean_tube_sync::CleanTubeConfig;
 use crate::clean_view_sync::CleanViewConfig;
+use crate::daily_sync::DailyConfig;
 use crate::fatebook_sync::FatebookConfig;
 use crate::focusmate_sync::FocusmateConfig;
 use crate::github_sync::GitHubConfig;
@@ -15,6 +16,7 @@ pub struct Config {
     pub category: Option<CategorySyncConfig>,
     pub clean_tube: Option<CleanTubeConfig>,
     pub clean_view: Option<CleanViewConfig>,
+    pub daily: Option<DailyConfig>,
     pub focusmate: Option<FocusmateConfig>,
     pub fatebook: Option<FatebookConfig>,
     pub github: Option<GitHubConfig>,

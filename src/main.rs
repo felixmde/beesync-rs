@@ -52,5 +52,9 @@ async fn main() -> Result<()> {
         run_sync(|| github_sync::github_sync(&github_config, &bee_client)).await;
     }
 
+    if let Some(daily_config) = config.daily {
+        run_sync(|| daily_sync::daily_sync(&daily_config, &bee_client)).await;
+    }
+
     Ok(())
 }
