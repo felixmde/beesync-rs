@@ -156,7 +156,86 @@ fn load_checkout_days(
     Ok(entries)
 }
 
-pub async fn daily_sync(_config: &DailyConfig, _beeminder: &BeeminderClient) -> Result<()> {
+pub async fn daily_sync(config: &DailyConfig, beeminder: &BeeminderClient) -> Result<()> {
+    println!("📔 daily-sync");
+
+    let conn = open_db(&config.db_path)?;
+    let mappings = resolve_mappings(&conn, &config.pairs)?;
+    if mappings.is_empty() {
+        println!("  🫙 No pairs resolved; nothing to sync.");
+        return Ok(());
+    }
+
+    let offset = UtcOffset::current_local_offset()?;
+    let today = OffsetDateTime::now_utc().to_offset(offset).date();
+    let start = today - Duration::days(config.lookback_days);
+    let start_str = format!(
+        "{:04}-{:02}-{:02}",
+        start.year(),
+        start.month() as u8,
+        start.day()
+    );
+
+    let pair_ids: Vec<i64> = mappings.iter().map(|m| m.pair_id).collect();
+    let entries = load_checkout_days(&conn, &pair_ids, &start_str)?;
+
+    // Pre-fetch existing datapoints once per distinct goal.
+    let mut existing_by_goal: HashMap<String, Vec<beeminder::types::Datapoint>> = HashMap::new();
+    for m in &mappings {
+        if !existing_by_goal.contains_key(&m.goal) {
+            let dps = beeminder
+                .get_datapoints(&m.goal, None, Some(100), None, None)
+                .await?;
+            existing_by_goal.insert(m.goal.clone(), dps);
+        }
+    }
+
+    for entry in &entries {
+        if entry.mood.is_none() {
+            println!(
+                "  ⚠️  Skipping partial day {} (no mood / not fully checked out).",
+                entry.entry_date
+            );
+            continue;
+        }
+
+        let daystamp = daystamp_from_date(&entry.entry_date);
+
+        for m in &mappings {
+            let side = entry.sides.get(&m.pair_id).map(String::as_str);
+            let value = pair_value(side, &m.good_side);
+            let mark = if value >= 0.5 { "✓" } else { "✗" };
+            let comment = format!("daily: {} {mark}", m.positive_name);
+
+            let existing = existing_by_goal
+                .get(&m.goal)
+                .and_then(|dps| dps.iter().find(|dp| dp.daystamp == daystamp));
+            let action = decide_upsert(existing.map(|dp| (dp.id.as_str(), dp.value)), value);
+
+            match action {
+                UpsertAction::Skip => {}
+                UpsertAction::Create => {
+                    let dp = CreateDatapoint {
+                        value,
+                        timestamp: None,
+                        daystamp: Some(daystamp.clone()),
+                        comment: Some(comment.clone()),
+                        requestid: Some(daystamp.clone()),
+                    };
+                    beeminder.create_datapoint(&m.goal, &dp).await?;
+                    println!("  🆕 {} {daystamp} = {value} ({})", m.goal, m.positive_name);
+                }
+                UpsertAction::Update(id) => {
+                    let update = UpdateDatapoint::new(id)
+                        .with_value(value)
+                        .with_comment(&comment);
+                    beeminder.update_datapoint(&m.goal, &update).await?;
+                    println!("  🔁 {} {daystamp} -> {value} ({})", m.goal, m.positive_name);
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 
