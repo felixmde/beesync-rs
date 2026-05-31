@@ -5,6 +5,7 @@ mod category_sync;
 mod clean_tube_sync;
 mod clean_view_sync;
 mod config;
+mod daily_sync;
 mod fatebook_sync;
 mod focusmate_sync;
 mod github_sync;
