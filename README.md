@@ -121,6 +121,28 @@ goal_name = "commits"
 username = "your-github-username"
 ```
 
+### Daily Sync
+
+Sets Beeminder goal values from the nightly checkout data in the [`daily`](https://github.com/felixmde/daily) app:
+
+- Reads `daily.db` (SQLite) in read-only mode; the daily server need not be running
+- Each tracked habit pair maps to its own Beeminder goal
+- For each fully checked-out day, sets the value to `1.0` when the pair's "good side" was reached, otherwise `0.0`
+- Idempotent per day (`requestid = daystamp`): creates, updates a differing value, or skips an already-correct datapoint
+- Skips partial days (no mood recorded) with a warning; days with no checkout are left untouched
+- Looks back `lookback_days` days (default 3); unknown pair names are warned about and skipped
+
+**Configuration:**
+```toml
+[daily]
+db_path = "/home/felixm/dev/daily/daily.db"
+lookback_days = 3
+
+[[daily.pairs]]
+pair = "No Twitch"      # matches pair.positive_name in daily.db
+goal = "no-twitch"      # Beeminder goal slug
+```
+
 ## API Key Configuration
 
 The `config.toml` supports two methods for specifying API keys:
