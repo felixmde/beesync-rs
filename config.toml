@@ -43,22 +43,37 @@ beeminder_key = { env = "BEEMINDER_API_KEY" }
 # openai_model = "gpt-4o"
 # min_window_duration_seconds = 10.0
 # prompt_template = """
-# I have a goal to reduce my social media usage. Please analyze the following window titles 
-# and determine if any indicate social media usage (Facebook, Twitter/X, Instagram, TikTok, 
+# I have a goal to reduce my social media usage. Please analyze the following window titles
+# and determine if any indicate social media usage (Facebook, Twitter/X, Instagram, TikTok,
 # Reddit, LinkedIn, etc.).
-# 
+#
 # Either reply:
-# 
+#
 # no
-# 
+#
 # Or:
-# 
+#
 # yes
 # <list the social media window titles here, one per line>
-# 
+#
 # Make sure you list only the lines that definitely indicate social media usage.
 # If there aren't any social media titles, just reply 'no' without quotes.
-# 
+#
 # Titles:
 # {{titles}}
 # """
+
+# [daily]
+# db_path = "/home/felixm/dev/daily/daily.db"  # read-only SQLite path
+# lookback_days = 3                            # optional, default 3
+#
+# # One mapping per tracked habit pair. `pair` matches pair.positive_name in
+# # daily.db; `goal` is the Beeminder goal slug that receives a 1.0 (good side
+# # reached) or 0.0 datapoint for each fully checked-out day.
+# [[daily.pairs]]
+# pair = "No Twitch"
+# goal = "no-twitch"
+#
+# [[daily.pairs]]
+# pair = "No news"
+# goal = "no-news"
