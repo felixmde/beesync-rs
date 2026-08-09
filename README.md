@@ -87,7 +87,7 @@ max_datapoints = 100
 AI-powered social media usage tracking via ActivityWatch:
 
 - Monitors browser window titles from ActivityWatch
-- Uses OpenAI GPT to analyze titles for social media usage
+- Uses an OpenRouter LLM to analyze titles for social media usage
 - Creates binary datapoints (1 for clean days, 0 for social media usage)
 - Highly customizable prompt template for AI analysis
 
@@ -98,8 +98,8 @@ activity_watch_base_url = "http://localhost:5600"
 window_bucket = "aw-watcher-window_laptop"
 goal_name = "social-media"
 lookback_days = 3
-openai_key = { env = "OPENAI_API_KEY" }
-openai_model = "gpt-4o"
+openrouter_key = { env = "OPENROUTER_API_KEY" }
+openrouter_model = "openrouter/auto"
 min_window_duration_seconds = 10.0
 prompt_template = "..."
 ```

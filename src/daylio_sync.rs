@@ -324,6 +324,157 @@ fn same_value(actual: Option<f64>, expected: f64) -> bool {
     actual.is_some_and(|actual| (actual - expected).abs() < 1e-9)
 }
 
+fn target_is_unchanged(target: &Target) -> bool {
+    target.existing.len() == 1
+        && target.existing[0].requestid.as_deref() == Some(&target.requestid)
+        && same_value(target.existing[0].value, target.value)
+        && target.existing[0].comment.as_deref() == Some(&target.comment)
+}
+
+fn target_action(target: &Target) -> &'static str {
+    if target_is_unchanged(target) {
+        return "✅ keep";
+    }
+
+    let canonical = target
+        .existing
+        .iter()
+        .any(|point| point.requestid.as_deref() == Some(&target.requestid));
+    match (canonical, target.existing.len()) {
+        (true, 1) => "✏️ update",
+        (true, _) => "🧹 update+prune",
+        (false, 0) => "➕ create",
+        (false, _) => "♻️ replace",
+    }
+}
+
+fn existing_values(target: &Target) -> String {
+    match target.existing.as_slice() {
+        [] => "-".to_string(),
+        points => points
+            .iter()
+            .map(|point| {
+                point
+                    .value
+                    .map_or_else(|| "?".to_string(), |value| value.to_string())
+            })
+            .collect::<Vec<_>>()
+            .join(","),
+    }
+}
+
+fn format_preview_table<'a>(targets: impl IntoIterator<Item = &'a Target>) -> String {
+    let headers = [
+        "goal".to_string(),
+        "date".to_string(),
+        "target".to_string(),
+        "existing".to_string(),
+        "action".to_string(),
+    ];
+    let rows: Vec<[String; 5]> = targets
+        .into_iter()
+        .map(|target| {
+            [
+                target.goal.clone(),
+                target.date.to_string(),
+                target.value.to_string(),
+                existing_values(target),
+                target_action(target).to_string(),
+            ]
+        })
+        .collect();
+
+    let widths = (0..5)
+        .map(|column| {
+            rows.iter()
+                .map(|row| row[column].chars().count())
+                .chain(std::iter::once(headers[column].chars().count()))
+                .max()
+                .unwrap_or(0)
+        })
+        .collect::<Vec<_>>();
+    let render = |row: &[String; 5]| {
+        format!(
+            "  {:<goal_width$} | {:<date_width$} | {:>target_width$} | {:>existing_width$} | {}\n",
+            row[0],
+            row[1],
+            row[2],
+            row[3],
+            row[4],
+            goal_width = widths[0],
+            date_width = widths[1],
+            target_width = widths[2],
+            existing_width = widths[3],
+        )
+    };
+    let separator = [
+        "-".repeat(widths[0]),
+        "-".repeat(widths[1]),
+        "-".repeat(widths[2]),
+        "-".repeat(widths[3]),
+        "-".repeat(widths[4]),
+    ];
+
+    let mut output = render(&headers);
+    output.push_str(&format!(
+        "  {} | {} | {} | {} | {}\n",
+        separator[0], separator[1], separator[2], separator[3], separator[4]
+    ));
+    for row in &rows {
+        output.push_str(&render(row));
+    }
+    output
+}
+
+fn pluralized(count: usize, singular: &str, plural: &str) -> String {
+    format!("{count} {}", if count == 1 { singular } else { plural })
+}
+
+fn format_run_summary(rows: usize, latest: Date, apply: bool) -> String {
+    let (emoji, mode) = if apply {
+        ("⚡", "APPLY")
+    } else {
+        ("🔍", "preview")
+    };
+    format!("  {emoji} {mode} · source: {rows} rows, latest {latest}")
+}
+
+fn format_apply_plan(targets: &[Target]) -> String {
+    let mutations: Vec<&Target> = targets
+        .iter()
+        .filter(|target| !target_is_unchanged(target))
+        .collect();
+    let unchanged = targets.len() - mutations.len();
+
+    if mutations.is_empty() {
+        let goals = targets
+            .iter()
+            .map(|target| target.goal.as_str())
+            .collect::<HashSet<_>>()
+            .len();
+        return format!(
+            "  ✅ already in sync — {} checked across {}\n",
+            pluralized(targets.len(), "datapoint", "datapoints"),
+            pluralized(goals, "goal", "goals")
+        );
+    }
+
+    let mut output = format_preview_table(mutations.iter().copied());
+    output.push_str(&format!(
+        "  {}{}\n",
+        pluralized(mutations.len(), "change", "changes"),
+        if unchanged == 0 {
+            String::new()
+        } else {
+            format!(
+                "; {} hidden",
+                pluralized(unchanged, "unchanged target", "unchanged targets")
+            )
+        }
+    ));
+    output
+}
+
 async fn apply_target(client: &BeeminderClient, target: &Target) -> Result<()> {
     let canonical = target
         .existing
@@ -414,48 +565,33 @@ pub async fn daylio_sync(
     let targets = plan(config, &days, &reconcile, &prefill, snapshots)?;
 
     println!(
-        "  source: {} rows, latest {}",
-        days.len(),
-        days.last().unwrap().date
+        "{}",
+        format_run_summary(days.len(), days.last().unwrap().date, config.apply)
     );
-    println!("  mode: {}", if config.apply { "APPLY" } else { "preview" });
-    println!("  goal | date | target | existing | action");
-    for target in &targets {
-        let canonical = target
-            .existing
-            .iter()
-            .any(|point| point.requestid.as_deref() == Some(&target.requestid));
-        let action = match (canonical, target.existing.len()) {
-            (true, 1)
-                if same_value(target.existing[0].value, target.value)
-                    && target.existing[0].comment.as_deref() == Some(&target.comment) =>
-            {
-                "unchanged"
-            }
-            (true, 1) => "update",
-            (true, _) => "update/delete extras",
-            (false, 0) => "create",
-            (false, _) => "create/delete extras",
-        };
-        println!(
-            "  {} | {} | {} | {} | {action}",
-            target.goal,
-            target.date,
-            target.value,
-            target.existing.len()
-        );
-    }
 
     if !config.apply {
+        print!("{}", format_preview_table(&targets));
         println!("  preview complete; set daylio.apply = true to apply all listed mutations");
         return Ok(());
     }
-    for target in &targets {
+
+    print!("{}", format_apply_plan(&targets));
+    let mutations: Vec<&Target> = targets
+        .iter()
+        .filter(|target| !target_is_unchanged(target))
+        .collect();
+    if mutations.is_empty() {
+        return Ok(());
+    }
+    for target in &mutations {
         apply_target(client, target)
             .await
             .with_context(|| format!("applying {} {}", target.goal, target.date))?;
     }
-    println!("  verified {} goal/date targets", targets.len());
+    println!(
+        "  ✅ applied and verified {}",
+        pluralized(mutations.len(), "change", "changes")
+    );
     Ok(())
 }
 
@@ -559,5 +695,134 @@ mod tests {
         assert_eq!(targets[0].goal, "goal");
         assert_eq!(targets[0].existing.len(), 1);
         assert_eq!(targets[0].existing[0].id, "existing");
+    }
+
+    #[test]
+    fn preview_table_aligns_columns_and_separates_header() {
+        let targets = vec![
+            Target {
+                goal: "free".into(),
+                date: date("2026-08-07"),
+                value: 1.0,
+                comment: "beesync/daylio: non-user present".into(),
+                requestid: "canonical".into(),
+                existing: vec![ExistingPoint {
+                    id: "existing".into(),
+                    value: Some(1.0),
+                    comment: Some("beesync/daylio: non-user present".into()),
+                    requestid: Some("canonical".into()),
+                    system: false,
+                }],
+            },
+            Target {
+                goal: "free".into(),
+                date: date("2026-08-10"),
+                value: 1.0,
+                comment: "beesync/daylio: non-user present".into(),
+                requestid: "new".into(),
+                existing: vec![],
+            },
+        ];
+
+        assert_eq!(
+            format_preview_table(&targets),
+            concat!(
+                "  goal | date       | target | existing | action\n",
+                "  ---- | ---------- | ------ | -------- | --------\n",
+                "  free | 2026-08-07 |      1 |        1 | ✅ keep\n",
+                "  free | 2026-08-10 |      1 |        - | ➕ create\n"
+            )
+        );
+    }
+
+    #[test]
+    fn preview_table_shows_existing_values_instead_of_point_counts() {
+        let target = Target {
+            goal: "clean-twitch".into(),
+            date: date("2026-08-08"),
+            value: 0.0,
+            comment: "beesync/daylio: non-user absent (authoritative)".into(),
+            requestid: "canonical".into(),
+            existing: vec![ExistingPoint {
+                id: "existing".into(),
+                value: Some(0.0),
+                comment: None,
+                requestid: None,
+                system: false,
+            }],
+        };
+
+        let table = format_preview_table(&[target]);
+
+        assert!(table.contains("clean-twitch | 2026-08-08 |      0 |        0 | ♻️ replace"));
+    }
+
+    #[test]
+    fn apply_plan_hides_unchanged_targets() {
+        let targets = vec![
+            Target {
+                goal: "free".into(),
+                date: date("2026-08-07"),
+                value: 1.0,
+                comment: "beesync/daylio: non-user present".into(),
+                requestid: "canonical".into(),
+                existing: vec![ExistingPoint {
+                    id: "existing".into(),
+                    value: Some(1.0),
+                    comment: Some("beesync/daylio: non-user present".into()),
+                    requestid: Some("canonical".into()),
+                    system: false,
+                }],
+            },
+            Target {
+                goal: "free".into(),
+                date: date("2026-08-10"),
+                value: 1.0,
+                comment: "beesync/daylio: non-user present".into(),
+                requestid: "new".into(),
+                existing: vec![],
+            },
+        ];
+
+        let output = format_apply_plan(&targets);
+
+        assert!(!output.contains("2026-08-07"));
+        assert!(output.contains("2026-08-10"));
+        assert!(output.contains("1 change; 1 unchanged target hidden"));
+    }
+
+    #[test]
+    fn apply_plan_collapses_when_everything_is_unchanged() {
+        let targets = vec![Target {
+            goal: "free".into(),
+            date: date("2026-08-07"),
+            value: 1.0,
+            comment: "beesync/daylio: non-user present".into(),
+            requestid: "canonical".into(),
+            existing: vec![ExistingPoint {
+                id: "existing".into(),
+                value: Some(1.0),
+                comment: Some("beesync/daylio: non-user present".into()),
+                requestid: Some("canonical".into()),
+                system: false,
+            }],
+        }];
+
+        assert_eq!(
+            format_apply_plan(&targets),
+            "  ✅ already in sync — 1 datapoint checked across 1 goal\n"
+        );
+    }
+
+    #[test]
+    fn run_summary_combines_mode_and_source_with_a_mode_emoji() {
+        assert_eq!(
+            format_run_summary(694, date("2026-08-08"), true),
+            "  ⚡ APPLY · source: 694 rows, latest 2026-08-08"
+        );
+        assert_eq!(
+            format_run_summary(694, date("2026-08-08"), false),
+            "  🔍 preview · source: 694 rows, latest 2026-08-08"
+        );
     }
 }

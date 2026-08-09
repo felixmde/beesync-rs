@@ -3,7 +3,7 @@ use anyhow::Result;
 use aw_client_light::AwClient;
 use beeminder::types::CreateDatapoint;
 use beeminder::BeeminderClient;
-use gpt::GptClient;
+use llm::LlmClient;
 use serde::Deserialize;
 use std::collections::HashSet;
 use time::{Duration, OffsetDateTime, Time, UtcOffset};
@@ -14,8 +14,8 @@ pub struct CleanViewConfig {
     pub window_bucket: String,
     pub goal_name: String,
     pub lookback_days: i64,
-    pub openai_key: Key,
-    pub openai_model: String,
+    pub openrouter_key: Key,
+    pub openrouter_model: String,
     pub min_window_duration_seconds: f64,
     pub prompt_template: String,
 }
@@ -28,7 +28,10 @@ fn get_prompt(template: &str, titles: &[String]) -> String {
 pub async fn clean_view_sync(config: &CleanViewConfig, beeminder: &BeeminderClient) -> Result<()> {
     println!("🧹 clean-view-sync");
     let aw = AwClient::new(Some(config.activity_watch_base_url.clone()));
-    let gpt = GptClient::new(config.openai_key.get_value()?, config.openai_model.clone());
+    let llm = LlmClient::new(
+        config.openrouter_key.get_value()?,
+        config.openrouter_model.clone(),
+    )?;
     let mut data_by_day: Vec<(String, Vec<String>)> = Vec::new();
 
     let offset = UtcOffset::current_local_offset()?;
@@ -50,7 +53,12 @@ pub async fn clean_view_sync(config: &CleanViewConfig, beeminder: &BeeminderClie
             .map(|event| event.data.title)
             .collect();
 
-        let daystamp = format!("{:04}{:02}{:02}", start.year(), start.month() as u8, start.day());
+        let daystamp = format!(
+            "{:04}{:02}{:02}",
+            start.year(),
+            start.month() as u8,
+            start.day()
+        );
         data_by_day.push((daystamp, entries.into_iter().collect()));
     }
 
@@ -58,17 +66,16 @@ pub async fn clean_view_sync(config: &CleanViewConfig, beeminder: &BeeminderClie
         .get_datapoints(&config.goal_name, None, Some(50), None, None)
         .await?;
 
-
     for (daystamp, titles) in &data_by_day {
         let (comment, value) = {
             if titles.is_empty() {
                 ("🫙 No titles.".to_string(), 1.0)
             } else {
                 let prompt = get_prompt(&config.prompt_template, titles);
-                let result = gpt.chat(&prompt).await?;
+                let result = llm.chat(&prompt).await?;
 
                 if result.trim() == "no" {
-                    ("✨ GPT approved.".to_string(), 1.0)
+                    ("✨ LLM approved.".to_string(), 1.0)
                 } else {
                     (result.lines().nth(1).unwrap_or_default().to_string(), 0.0)
                 }
