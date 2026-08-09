@@ -135,13 +135,47 @@ Sets Beeminder goal values from the nightly checkout data in the [`daily`](https
 **Configuration:**
 ```toml
 [daily]
-db_path = "/home/felixm/dev/daily/daily.db"
+db_path = "/path/to/daily.db"
 lookback_days = 3
 
 [[daily.pairs]]
 pair = "No Twitch"      # matches pair.positive_name in daily.db
 goal = "no-twitch"      # Beeminder goal slug
 ```
+
+### Daylio Sync
+
+Reconciles a manual Daylio CSV report directly to Beeminder. Daylio is
+authoritative for the latest contiguous source days: each configured goal/date
+is reduced to one canonical datapoint. Dates after the latest export are filled
+optimistically through the configured horizon.
+
+The default is a read-only preview. Set `apply = true` in the same section to
+apply every listed create, update, and deletion. The sync aborts before writing
+when the export is stale or has gaps, or when a target date contains a Beeminder
+dummy/initial datapoint. Mutations are serial and verified after each date; a
+failed partial run can be safely rerun. Manual edits can race with the API calls
+because Beeminder provides no transaction.
+
+```toml
+[daylio]
+source = "/path/to/daylio.csv"
+reconcile_days = 7
+prefill_horizon_days = 7
+apply = false
+
+[[daylio.mappings]]
+activity = "Meditation"
+beeminder_goal = "meditation"
+present_value = 1.0
+absent_value = 0.0
+prefill_value = 1.0
+```
+
+Activities match exactly after trimming and case normalization. Daylio calendar
+dates are sent using Beeminder `daystamp`, leaving goal deadline handling to
+Beeminder. Keep the private export outside Git with mode `0600`; the repository
+contains only a synthetic schema fixture.
 
 ## API Key Configuration
 

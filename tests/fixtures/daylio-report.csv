@@ -1,0 +1,4 @@
+full_date,date,weekday,time,mood,activities,scales,note_title,note
+2026-08-03,August 3,Monday,9:00 PM,good,"Reading | Stretching",,Example,"quoted, synthetic note"
+2026-08-04,August 4,Tuesday,9:15 PM,good,Reading,,,"multiline
+synthetic note"

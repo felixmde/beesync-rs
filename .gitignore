@@ -17,3 +17,7 @@ CLAUDE.md
 
 # My personal config bruv
 mine.toml
+
+# Daylio exports contain private journal data.
+daylio*.csv
+!tests/fixtures/daylio-report.csv

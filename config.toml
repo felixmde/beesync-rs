@@ -64,7 +64,7 @@ beeminder_key = { env = "BEEMINDER_API_KEY" }
 # """
 
 # [daily]
-# db_path = "/home/felixm/dev/daily/daily.db"  # read-only SQLite path
+# db_path = "/path/to/daily.db"  # read-only SQLite path
 # lookback_days = 3                            # optional, default 3
 #
 # # One mapping per tracked habit pair. `pair` matches pair.positive_name in
@@ -77,3 +77,16 @@ beeminder_key = { env = "BEEMINDER_API_KEY" }
 # [[daily.pairs]]
 # pair = "No news"
 # goal = "no-news"
+
+# [daylio]
+# source = "/path/to/daylio.csv"
+# reconcile_days = 7
+# prefill_horizon_days = 7
+# apply = false # preview only; set true to create/update/delete
+#
+# [[daylio.mappings]]
+# activity = "Meditation"
+# beeminder_goal = "meditation"
+# present_value = 1.0
+# absent_value = 0.0
+# prefill_value = 1.0
