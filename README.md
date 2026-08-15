@@ -159,7 +159,7 @@ because Beeminder provides no transaction.
 
 ```toml
 [daylio]
-source = "/path/to/daylio.csv"
+source = "/path/to/daylio_export_*.csv"
 reconcile_days = 7
 prefill_horizon_days = 7
 apply = false
@@ -171,6 +171,11 @@ present_value = 1.0
 absent_value = 0.0
 prefill_value = 1.0
 ```
+
+`source` may contain glob wildcards (`*`, `?`, `[...]`). Daylio stamps its
+exports with the export date, so a pattern picks up the newest export without
+renaming it; the most recently modified match wins, with ties broken by path.
+A `source` without wildcards is used verbatim.
 
 Activities match exactly after trimming and case normalization. Daylio calendar
 dates are sent using Beeminder `daystamp`, leaving goal deadline handling to

@@ -7,7 +7,8 @@ use serde::Deserialize;
 use std::{
     collections::{HashMap, HashSet},
     fs,
-    path::Path,
+    path::{Path, PathBuf},
+    time::SystemTime,
 };
 use time::{macros::format_description, Date, Duration};
 
@@ -65,16 +66,60 @@ struct Target {
     existing: Vec<ExistingPoint>,
 }
 
+/// True when `source` is a glob pattern rather than a plain path.
+fn is_pattern(source: &str) -> bool {
+    source.contains(['*', '?', '['])
+}
+
 impl DaylioConfig {
-    fn validate(&self) -> Result<()> {
-        let path = Path::new(&self.source);
-        if path.extension().and_then(|value| value.to_str()) != Some("csv") {
+    /// Resolves `source` to a concrete file.
+    ///
+    /// Daylio stamps its exports with the export date, so a pattern such as
+    /// `daylio_export_*.csv` picks up the newest export without renaming it.
+    /// A `source` without wildcards is used verbatim.
+    fn resolve_source(&self) -> Result<PathBuf> {
+        if !is_pattern(&self.source) {
+            return Ok(PathBuf::from(&self.source));
+        }
+
+        let matches = glob::glob(&self.source)
+            .with_context(|| format!("invalid Daylio source pattern: {}", self.source))?;
+
+        let mut newest: Option<(SystemTime, PathBuf)> = None;
+        for entry in matches {
+            let path = entry
+                .with_context(|| format!("expanding Daylio source pattern: {}", self.source))?;
+            let Ok(metadata) = fs::metadata(&path) else {
+                continue;
+            };
+            if !metadata.is_file() {
+                continue;
+            }
+            let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+            // Ties break on the path so the choice stays deterministic.
+            let better = match &newest {
+                Some((best_modified, best_path)) => (modified, &path) > (*best_modified, best_path),
+                None => true,
+            };
+            if better {
+                newest = Some((modified, path));
+            }
+        }
+
+        match newest {
+            Some((_, path)) => Ok(path),
+            None => bail!("no file matches Daylio source pattern: {}", self.source),
+        }
+    }
+
+    fn validate(&self, source: &Path) -> Result<()> {
+        if source.extension().and_then(|value| value.to_str()) != Some("csv") {
             bail!("Daylio source must have a .csv extension")
         }
-        let metadata = fs::metadata(path)
-            .with_context(|| format!("reading Daylio source metadata at {}", self.source))?;
+        let metadata = fs::metadata(source)
+            .with_context(|| format!("reading Daylio source metadata at {}", source.display()))?;
         if !metadata.is_file() {
-            bail!("Daylio source is not a regular file: {}", self.source)
+            bail!("Daylio source is not a regular file: {}", source.display())
         }
         if self.reconcile_days < 1 {
             bail!("daylio.reconcile_days must be at least 1")
@@ -116,11 +161,11 @@ fn normalized(value: &str) -> String {
     value.trim().to_lowercase()
 }
 
-fn parse_csv(path: &str) -> Result<Vec<DaylioDay>> {
+fn parse_csv(path: &Path) -> Result<Vec<DaylioDay>> {
     let mut reader = csv::ReaderBuilder::new()
         .flexible(true)
         .from_path(path)
-        .with_context(|| format!("opening Daylio CSV at {path}"))?;
+        .with_context(|| format!("opening Daylio CSV at {}", path.display()))?;
     let headers = reader.headers()?.clone();
     let names: Vec<String> = headers
         .iter()
@@ -539,8 +584,12 @@ pub async fn daylio_sync(
     today: Date,
 ) -> Result<()> {
     println!("📔 daylio-sync");
-    config.validate()?;
-    let days = parse_csv(&config.source)?;
+    let source = config.resolve_source()?;
+    config.validate(&source)?;
+    if is_pattern(&config.source) {
+        println!("  📄 {}", source.display());
+    }
+    let days = parse_csv(&source)?;
     let (reconcile, prefill) = target_dates(config, &days, today)?;
 
     let mut snapshots = HashMap::new();
@@ -605,7 +654,7 @@ mod tests {
 
     #[test]
     fn parses_real_report_shape_and_unions_rows() {
-        let days = parse_csv("tests/fixtures/daylio-report.csv").unwrap();
+        let days = parse_csv(Path::new("tests/fixtures/daylio-report.csv")).unwrap();
         assert_eq!(days.len(), 2);
         assert!(days[0].activities.contains("reading"));
         assert!(days[0].activities.contains("stretching"));
@@ -824,5 +873,57 @@ mod tests {
             format_run_summary(694, date("2026-08-08"), false),
             "  🔍 preview · source: 694 rows, latest 2026-08-08"
         );
+    }
+
+    fn config_with_source(source: &str) -> DaylioConfig {
+        DaylioConfig {
+            source: source.into(),
+            reconcile_days: 7,
+            prefill_horizon_days: 7,
+            apply: false,
+            mappings: vec![],
+        }
+    }
+
+    /// Creates an empty directory under the system temp dir, unique to `label`.
+    fn scratch_dir(label: &str) -> PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("beesync-daylio-{label}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn source_without_wildcard_is_used_verbatim() {
+        let config = config_with_source("/home/user/daylio_export.csv");
+        assert_eq!(
+            config.resolve_source().unwrap(),
+            PathBuf::from("/home/user/daylio_export.csv")
+        );
+    }
+
+    #[test]
+    fn wildcard_source_resolves_to_the_most_recent_export() {
+        let dir = scratch_dir("newest");
+        // Written first, so it is the older file despite sorting last by name.
+        fs::write(dir.join("export_b.csv"), "").unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        fs::write(dir.join("export_a.csv"), "").unwrap();
+
+        let config = config_with_source(dir.join("export_*.csv").to_str().unwrap());
+        assert_eq!(config.resolve_source().unwrap(), dir.join("export_a.csv"));
+
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn wildcard_source_without_matches_is_an_error() {
+        let dir = scratch_dir("empty");
+        let config = config_with_source(dir.join("export_*.csv").to_str().unwrap());
+        let error = config.resolve_source().unwrap_err().to_string();
+        assert!(error.contains("no file matches"), "{error}");
+
+        fs::remove_dir_all(&dir).unwrap();
     }
 }

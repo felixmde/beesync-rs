@@ -79,7 +79,7 @@ beeminder_key = { env = "BEEMINDER_API_KEY" }
 # goal = "no-news"
 
 # [daylio]
-# source = "/path/to/daylio.csv"
+# source = "/path/to/daylio_export_*.csv" # globs allowed; newest match wins
 # reconcile_days = 7
 # prefill_horizon_days = 7
 # apply = false # preview only; set true to create/update/delete
