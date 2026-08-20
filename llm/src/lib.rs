@@ -74,7 +74,7 @@ impl LlmClient {
             .post(CHAT_COMPLETIONS_URL)
             .bearer_auth(&self.api_key)
             .header("HTTP-Referer", APP_URL)
-            .header("X-OpenRouter-Title", APP_NAME)
+            .header("X-Title", APP_NAME)
             .json(&request)
             .send()
             .await
