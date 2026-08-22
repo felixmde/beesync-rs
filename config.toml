@@ -63,21 +63,6 @@ beeminder_key = { env = "BEEMINDER_API_KEY" }
 # {{titles}}
 # """
 
-# [daily]
-# db_path = "/path/to/daily.db"  # read-only SQLite path
-# lookback_days = 3                            # optional, default 3
-#
-# # One mapping per tracked habit pair. `pair` matches pair.positive_name in
-# # daily.db; `goal` is the Beeminder goal slug that receives a 1.0 (good side
-# # reached) or 0.0 datapoint for each fully checked-out day.
-# [[daily.pairs]]
-# pair = "No Twitch"
-# goal = "no-twitch"
-#
-# [[daily.pairs]]
-# pair = "No news"
-# goal = "no-news"
-
 # [daylio]
 # source = "/path/to/daylio_export_*.csv" # globs allowed; newest match wins
 # reconcile_days = 7

@@ -6,7 +6,6 @@ mod category_sync;
 mod clean_tube_sync;
 mod clean_view_sync;
 mod config;
-mod daily_sync;
 mod daylio_sync;
 mod fatebook_sync;
 mod focusmate_sync;
@@ -62,10 +61,6 @@ fn main() -> Result<()> {
 
         if let Some(github_config) = config.github {
             run_sync(|| github_sync::github_sync(&github_config, &bee_client)).await;
-        }
-
-        if let Some(daily_config) = config.daily {
-            run_sync(|| daily_sync::daily_sync(&daily_config, &bee_client)).await;
         }
 
         if let Some(daylio_config) = config.daylio {
